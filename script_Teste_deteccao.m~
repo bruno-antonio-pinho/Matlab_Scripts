@@ -5,6 +5,7 @@ clc
 %%
 v = VideoReader('../sema.mpeg');
 k = 0;
+video = zeros(video.)
 
 pontos_rua = [219 104;640 230;640 367;400 367;129 123];
 pontos_interesse = [172 114;640 350;640 367;400 367;129 123];
