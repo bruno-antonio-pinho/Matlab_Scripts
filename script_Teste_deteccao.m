@@ -3,7 +3,7 @@ clear all
 clc
 
 %%
-v = VideoReader('../sema.mpeg');
+v = VideoReader('../Video_teste.mpeg');
 k = 0;
 
 pontos_rua = [219 104;640 230;640 367;400 367;129 123];
@@ -16,8 +16,8 @@ mask_rua = uint8(poly2mask(pontos_rua(:,1),pontos_rua(:,2),v.Height,v.Width));
 %% Converte o video para matrizes 
 while hasFrame(v)
     k = k + 1;
-    vcolor(:,:,:,k) = (readFrame(v)); % Frame em RGB.
-    video(:,:,k) = mask_rua.*imgaussfilt(rgb2gray(vcolor(:,:,:,k)), 0.01); % Frame em GrayScale.
+    %vcolor(:,:,:,k) = (readFrame(v)); % Frame em RGB.
+    video(:,:,k) = mask_rua.*imgaussfilt(rgb2gray(readFrame(v)), 0.01); % Frame em GrayScale.
 end
 
 %%
@@ -30,7 +30,7 @@ for k = 1:size(video, 3)
 end
 
 %% Area de testes
-imshow(video(:,:,60))
+%imshow(video(:,:,60))
 %h = impoly(gca, [172 114;640 350;640 367;400 367;129 123]);
 %h1 = impoly(gca, [219 104;640 230;640 367;400 367;129 123]);
 % implay(video)
@@ -41,7 +41,7 @@ imshow(video(:,:,60))
 %bw = zeros(size(video,1), size(video,2), size(video,3));
 %border = zeros(size(video,1), size(video,2), size(video,3));
 %final = zeros(size(video,1), size(video,2), size(video,3));
-detected = vcolor;
+%detected = cat(3, video, video, video);
 
 for(frame = 1:size(video,3))
     
@@ -74,9 +74,9 @@ imshow(detected(:,:,:,380));
 
 %%
 implay(video)
-implay(obj)
+%implay(obj)
 implay(detected)
 
 %%
-recorder(detected, 10, '../carrosDetectados');
+%recorder(detected, 10, '../carrosDetectados');
 
