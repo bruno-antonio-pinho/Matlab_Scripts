@@ -11,7 +11,7 @@ img_aux = snapshot(cam);
 Height = size(img_aux,1);
 Width = size(img_aux,2);
 
-outputVideo = VideoWriter(fullfile('./', 'detected_ip.avi'));
+outputVideo = VideoWriter(fullfile('../', 'detected_ip.avi'));
 outputVideo.FrameRate = 15;
 open(outputVideo);
 
