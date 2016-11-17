@@ -11,9 +11,9 @@ img_aux = snapshot(cam);
 Height = size(img_aux,1);
 Width = size(img_aux,2);
 
-outputVideo = VideoWriter(fullfile('../', 'detected_ip.avi'));
-outputVideo.FrameRate = 15;
-open(outputVideo);
+% outputVideo = VideoWriter(fullfile('./', 'detected_ip.avi'));
+% outputVideo.FrameRate = 15;
+% open(outputVideo);
 
 %v = VideoReader('../hou-cam-007.mpg'); % Le o arquivo de video
 
@@ -59,12 +59,11 @@ nFrames = 50;
 buffer = uint8(zeros(Height, Width, 50));
 border = (zeros(Height, Width)) > 0;
 final = uint8(zeros(Height, Width));
-dtected = final;
 thr = 20;
 se = strel('disk',4);
 frame = 0;
 
-while(frame < 500)
+while(offset < 900)
 
     for(frame = 1:nFrames)
         buffer(:, :, frame) = imgaussfilt(rgb2gray(snapshot(cam)), 0.01); % Adiquire-se o proximo frame na fila.
@@ -78,9 +77,9 @@ while(frame < 500)
         border = imdilate(border, se); % Faz-se uma dilatação do contorno.
         
         final = buffer(:,:,frame) + uint8(border)*255; % Soma-se o contorno a imagem.
-        detected = cat(3, buffer(:,:,frame), final, buffer(:,:,frame)); % Cria-se um video mostrando os 
+        detected(:, :, :, (offset + frame)) = cat(3, buffer(:,:,frame), final, buffer(:,:,frame)); % Cria-se um video mostrando os 
                 ... objetos identificados com uma borda no canal verde.
-       writeVideo(outputVideo, detected);
+%        writeVideo(outputVideo, detected);
    
 %         if(~hasFrame(v))
 %             break;
@@ -93,7 +92,7 @@ while(frame < 500)
     offset = offset + nFrames;
 end
 
-close(outputVideo);
+% close(outputVideo);
 
 %% Visualiza os carros detectados
 implay(detected, 30)
