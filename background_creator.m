@@ -18,6 +18,6 @@ for k = 1:bk_downsample:nFrames
 end
 
 background = background./pixel_sample_density;
-
+clear nonmoving pixel_sample_density diff_frame diff_BW  se nFrames;
 
 end

@@ -1,12 +1,13 @@
 close all
 clear all
 clc
-
+%profile -memory on;
+profile on;
 % Leitura da entrada
 url = 'http://172.18.131.248/axis-cgi/mjpg/video.cgi'; % endereço para acesso direto a camera.
 cam = ipcam(url); % Cria um objeto ipcam.
 img_aux = snapshot(cam);
-% Height = size(img_aux,1);
+% Height = size(img_aux,1);f
 % Width = size(img_aux,2);
 %figure(1); imshow(img_aux,[]);
 %imcrop(img_aux)
@@ -15,6 +16,11 @@ I = imcrop(img_aux, pos);
 %figure(1); imshow(I,[]);
 Height = size(I,1);
 Width = size(I,2);
+buffer = uint8(zeros(Height, Width, 50));
+border = (zeros(Height, Width)) > 0;
+final = uint8(zeros(Height, Width));
+background = zeros(Height, Width);
+background_frame = background;
 clear pontos_rua url user pass img_aux I;
 %%
 
@@ -44,7 +50,6 @@ bg_step = 10;
 %end
 
 % Cria um plano de fundo incial com as amostras obtidas.
-background_frame = 0.00;
 for k = 1:bg_step:nFrames
     for(i = k:(k + bg_step))
         tmp = imcrop(snapshot(cam),pos);
@@ -57,11 +62,7 @@ background = bg_step*background_frame/(nFrames);
 clear buffer_init background_frame bg_step k tmp i pontos_rua;
 %figure(1); imshow(background,[]);
 %% Detecção de carros e atualização do plano de fundo
-
 nFrames = 50;
-buffer = uint8(zeros(Height, Width, 50));
-border = (zeros(Height, Width)) > 0;
-final = uint8(zeros(Height, Width));
 thr = 20;
 se = strel('disk',4);
 frame = 0;
@@ -72,11 +73,10 @@ while(true)
     outputVideo = VideoWriter(fullfile('./Videos', file_name));
     outputVideo.FrameRate = 15;
     open(outputVideo);
-    
     offset = 0;
     
-    while(offset < 900)
-        
+    while(offset < 450)
+        keyboard;
         for(frame = 1:nFrames)
             buffer(:, :, frame) = imgaussfilt(rgb2gray(imcrop(snapshot(cam),pos)), 0.01); % Adiquire-se o proximo frame na fila.
             
@@ -91,17 +91,20 @@ while(true)
             final = buffer(:,:,frame) + uint8(border)*255; % Soma-se o contorno a imagem.
             detected = cat(3, buffer(:,:,frame), final, buffer(:,:,frame)); % Cria-se um video mostrando os
             ... objetos identificados com uma borda no canal verde.
+            detected = imcrop(snapshot(cam),pos);
             writeVideo(outputVideo, detected);
             
         end
         
         % Cria-se um novo background com base nas novas 50 amostras obtidas.
-        background = background_creator(buffer, background);
+        % background = background_creator(buffer, background);
         %figure(1); imshow(background,[]);
         offset = offset + nFrames;
     end
     offset = 0;
     outputVideo.close();
     clear outputVideo;
+    
+    
 
 end
