@@ -107,6 +107,7 @@ while(true)
         % Cria-se um novo background com base nas novas 50 amostras obtidas.
         background = background_creator(buffer, background);
         offset = offset + nFrames;
+        clear functions;
     end
     
     close(outputVideo); % Fecha o arquivo de video, se o mesmo não for 
