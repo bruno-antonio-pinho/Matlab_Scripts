@@ -2,7 +2,8 @@
 close all
 clear all
 clc
-
+v_time = 60;
+fps = 4;
 %% Inicialização de variaveis e alocação de memória para todas as matrize.
 
 %profile on;
@@ -19,7 +20,8 @@ while(true)
         img_aux = snapshot(cam);
         break;
     elseif(key == 1)
-        file = input('Digite ocaminho para o arquivo de video:\n', 's')
+        %file = input('Digite ocaminho para o arquivo de video:\n', 's')
+        file = 'Videos\teste.avi';
         v = VideoReader(file);
         img_aux = readFrame(v);
         break;
@@ -28,9 +30,19 @@ while(true)
         
     end
 end
+% timer1 = zeros(1, 6);
+% while true
+%     timer1 = clock;
+%     if ((timer1(4) >= 17) && (timer1(5) >= 43))
+%         break;
+%     end
+% end
+
+
+%%
 tudo = true;
 blob_size = 1230;
-video_size = 150; %10s de dura��o a 15fps;
+video_size = fps*v_time; %10s de dura��o a 15fps;
 % Corta a area de interesse da imagem.
 %imcrop(img_aux)
 pos = [3.5 217.5 1277 548];
@@ -72,6 +84,8 @@ clear pontos_rua url user pass;
 nFrames = 100;
 bg_step = 10;
 
+tstart = 0;
+buff_time = zeros(1,100);
 % Obtem as 100 amostra aplicando a mascara.
 %for(k = 1:nFrames)
 %    buffer_init(:,:,k) = mask_rua.*  imgaussfilt(rgb2gray(readFrame(v)), 0.01);
@@ -83,6 +97,7 @@ for k = 1:bg_step:nFrames
         if(key)
             img_aux = readFrame(v);
         else
+            tstart = tic;
             img_aux = snapshot(cam);
         end
         
@@ -92,6 +107,7 @@ for k = 1:bg_step:nFrames
             I = img_aux;
         end
         buffer_init(:,:,i) = rgb2gray(I);%.*mask_rua;
+        buff_time(i) = toc(tstart);
     end
     background_frame = background_frame + double(buffer_init(:,:,k));
 end
@@ -104,18 +120,22 @@ clear buffer_init background_frame bg_step k i;
 nFrames = 50;
 thr = 20;
 se = strel('disk',4);
-frame = 0;
+frame = 0;    
+buff_time = zeros(1,v_time*fps);
 
+%interrupt = 0;
+%timer0 = timer('TimerFcn', 'stat=false; interrupt = 1','StartDelay';10);
 while(true)
-    
+
     offset = 0; % Inicia o offset
-    
     file_name = strcat(datestr(now,30), '.avi'); % Pega a data e o horario
     ... atual como uma string e concatena com .avi para criar o nome do arquivo.
         outputVideo = VideoWriter(fullfile('./Videos', file_name));
-    outputVideo.FrameRate = 15; % Configura o video de sida para o mesmo framerate da camera.
+    outputVideo.FrameRate = fps; % Configura o video de sida para o mesmo framerate da camera.
     open(outputVideo);
     
+    temporizador = 0;
+    tstart = tic;
     fim_video = false;
     while(offset < video_size) % Limita os videos a 450 frames ou 30 segundos.
         
@@ -150,8 +170,19 @@ while(true)
             final = buffer(:,:,frame) + uint8(border)*255; % Soma-se o contorno a imagem.
             detected = cat(3, gray, final, gray); % Cria-se um video mostrando os
             ... objetos identificados com uma borda no canal verde.
-                writeVideo(outputVideo, detected); % Grava a imagem processada no video.
-            
+                
+        %writeVideo(outputVideo, gray); % Grava a imagem processada no video.
+        writeVideo(outputVideo, detected); % Grava a imagem processada no video.
+        
+        if(key == 0)
+            t_final = toc(tstart);
+            while t_final < 0.25
+                t_final = toc(tstart);
+            end
+            interrupt = 0;
+            temporizador = temporizador + 0.25;
+        end
+        
         end
         
         % Cria-se um novo background com base nas novas 50 amostras obtidas.
@@ -166,7 +197,7 @@ while(true)
     close(outputVideo); % Fecha o arquivo de video, se o mesmo não for
     ... fechado o arquivo é corrompido e sua leitura é impossibilitada.
         %clear outputVideo;
-    fprintf('O arquivo %s foi gravado em disco com sucesso. \n', file_name);
+    %fprintf('O arquivo %s foi gravado em disco com sucesso. \n', file_name);
     if(fim_video)
         break;
     end
