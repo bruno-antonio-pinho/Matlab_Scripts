@@ -2,28 +2,37 @@
 close all
 clear all
 clc
-v_time = 60;
-fps = 4;
+v_time = 3600;
+fps = 15;
 %% InicializaÃ§Ã£o de variaveis e alocaÃ§Ã£o de memÃ³ria para todas as matrize.
 
 %profile on;
 key = 0;
-prompt = 'Selecione o modo desejado: \n 0 - Camera ip.\n 1 - Arquivo de video. \n';
+prompt = 'Selecione o modo desejado: \n 0 - Camera ip.\n 1 - Arquivo de video. \n 2 - Webcam. \n';
 while(true)
     key = input(prompt);
+    %key = 1;
     if(key == 0)
         % Leitura da entrada
-        url = 'http://172.18.116.1/axis-cgi/mjpg/video.cgi'; % endereÃ§o para acesso direto a camera.
-        user = 'odilson';
-        pass = 'pr0j3t0';
+        url = 'http://172.18.116.31/axis-cgi/mjpg/video.cgi'; % endereÃ§o para acesso direto a camera.
+        %user = 'odilson';
+        %pass = 'pr0j3t0';
+        user = 'admin';
+        pass = 'admin';
         cam = ipcam(url, user, pass); % Cria um objeto ipcam.
         img_aux = snapshot(cam);
         break;
     elseif(key == 1)
         %file = input('Digite ocaminho para o arquivo de video:\n', 's')
-        file = 'Videos\teste.avi';
+        file = 'Videos\mini_teste.avi';
         v = VideoReader(file);
+        fps = v.FrameRate;
         img_aux = readFrame(v);
+        break;
+    
+    elseif(key == 2)
+        cam = webcam(1); % Cria um objeto ipcam.
+        img_aux = snapshot(cam);
         break;
     else
         display('Opção invalida.')
@@ -33,7 +42,7 @@ end
 % timer1 = zeros(1, 6);
 % while true
 %     timer1 = clock;
-%     if ((timer1(4) >= 17) && (timer1(5) >= 43))
+%     if ((timer1(4) >= 17) && (timer1(5) >= 20))
 %         break;
 %     end
 % end
@@ -41,7 +50,7 @@ end
 
 %%
 tudo = true;
-blob_size = 1230;
+blob_size = 2300;
 video_size = fps*v_time; %10s de duração a 15fps;
 % Corta a area de interesse da imagem.
 %imcrop(img_aux)
@@ -57,7 +66,8 @@ end
 % para as matrizes.
 Height = size(I,1);
 Width = size(I,2);
-buffer_init = uint8(zeros(Height, Width, 3, 100));
+frame_ini = 100;
+buffer_init = uint8(zeros(Height, Width, frame_ini));
 buffer = uint8(zeros(Height, Width, 50));
 gray = uint8(zeros(Height, Width));
 border = (zeros(Height, Width)) > 0;
@@ -81,8 +91,9 @@ clear pontos_rua url user pass;
 %% CriaÃ§Ã£o do plano de fundo inicial
 
 % Para a crição de um plano de fundo inicial são coletados 100 frames.
-nFrames = 100;
-bg_step = 10;
+bg_step = 30;
+nFrames = bg_step*3+1;
+buffer_init(Height,Width,nFrames) = uint8(0);
 
 tstart = 0;
 buff_time = zeros(1,100);
@@ -91,27 +102,44 @@ buff_time = zeros(1,100);
 %    buffer_init(:,:,k) = mask_rua.*  imgaussfilt(rgb2gray(readFrame(v)), 0.01);
 %end
 
-% Cria um plano de fundo incial com as amostras obtidas.
-for k = 1:bg_step:nFrames
-    for(i = k:(k + bg_step))
-        if(key)
-            img_aux = readFrame(v);
-        else
-            tstart = tic;
-            img_aux = snapshot(cam);
-        end
-        
-        if ~tudo
-            I = imcrop(img_aux, pos);
-        else
-            I = img_aux;
-        end
-        buffer_init(:,:,i) = rgb2gray(I);%.*mask_rua;
-        buff_time(i) = toc(tstart);
-    end
-    background_frame = background_frame + double(buffer_init(:,:,k));
+% % Cria um plano de fundo incial com as amostras obtidas.
+% for k = 1:bg_step:nFrames
+%     for(f = k:(k + bg_step))
+%         if(key == 1)
+%             img_aux = readFrame(v);
+%         else
+%             tstart = tic;
+%             img_aux = snapshot(cam);
+%         end
+%         
+%         if ~tudo
+%             I = imcrop(img_aux, pos);
+%         else
+%             I = img_aux;
+%         end
+%         buffer_init(:,:,f) = rgb2gray(I);%.*mask_rua
+%         %buff_time(i) = toc(tstart);
+%     end
+%     background_frame = background_frame + double(buffer_init(:,:,k));
+% end
+% background = bg_step*background_frame/(nFrames);
+
+if(key == 1)
+    img_aux = readFrame(v);
+else
+    img_aux = snapshot(cam);
 end
-background = bg_step*background_frame/(nFrames);
+
+background = double(rgb2gray(img_aux));
+for pos = 1:frame_ini
+    if(key == 1)
+        img_aux = readFrame(v);
+    else
+        img_aux = snapshot(cam);
+    end
+   buffer_init(:,:, pos) = rgb2gray(img_aux);
+end
+background = background_creator(buffer_init, background);
 
 clear buffer_init background_frame bg_step k i;
 %figure(1); imshow(background,[]);
@@ -130,7 +158,7 @@ while(true)
     offset = 0; % Inicia o offset
     file_name = strcat(datestr(now,30), '.avi'); % Pega a data e o horario
     ... atual como uma string e concatena com .avi para criar o nome do arquivo.
-        outputVideo = VideoWriter(fullfile('./Videos', file_name));
+    outputVideo = VideoWriter(fullfile('./Videos', file_name));
     outputVideo.FrameRate = fps; % Configura o video de sida para o mesmo framerate da camera.
     open(outputVideo);
     
@@ -140,7 +168,7 @@ while(true)
     while(offset < video_size) % Limita os videos a 450 frames ou 30 segundos.
         
         for(frame = 1:nFrames)
-            if(key)
+            if(key == 1)
                 if(hasFrame(v))
                     img_aux = readFrame(v);
                 else
@@ -170,17 +198,17 @@ while(true)
             final = buffer(:,:,frame) + uint8(border)*255; % Soma-se o contorno a imagem.
             detected = cat(3, gray, final, gray); % Cria-se um video mostrando os
             ... objetos identificados com uma borda no canal verde.
-                
+            %background = background_refresh(gray, background);    
         %writeVideo(outputVideo, gray); % Grava a imagem processada no video.
         writeVideo(outputVideo, detected); % Grava a imagem processada no video.
         
         if(key == 0)
             t_final = toc(tstart);
-            while t_final < 0.25
+            while t_final < 0.1
                 t_final = toc(tstart);
             end
             interrupt = 0;
-            temporizador = temporizador + 0.25;
+            temporizador = temporizador + 0.20;
         end
         
         end
